@@ -11,3 +11,10 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_EXTENSIONS ON)
 
 add_subdirectory(src bin)
+
+include(cmake/Libraries.cmake)
+
+list(APPEND LIBRARIES glad glfw)
+
+build_libraries("${LIBRARIES}")
+link_libraries(physarum "${LIBRARIES}")
