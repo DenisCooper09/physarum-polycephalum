@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include "PP_Debug.h"
 
 int main(void)
 {
-    printf("Hello, World!\n");
+    PP_INFO("Hello, World!");
     return 0;
 }
