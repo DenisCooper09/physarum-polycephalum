@@ -14,7 +14,7 @@ PP_Shader PP_ShaderCreate(size_t number, ...)
         GLuint shader = glCreateShader(ss.type);
 
         char *source;
-        PP_ReadFile(ss.path, &source);
+        PP_ReadFile(ss.path, &source, 0);
 
         glShaderSource(shader, 1, (const GLchar *const *) &source, 0);
         free(source);
