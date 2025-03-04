@@ -27,7 +27,7 @@ int main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(800, 800, "OpenGL", 0, 0);
+    GLFWwindow *window = glfwCreateWindow(800, 800, "P. Polycephalum Simulation", 0, 0);
     if (!window)
     {
         glfwTerminate();
