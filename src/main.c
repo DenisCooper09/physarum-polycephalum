@@ -1,11 +1,29 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <time.h>
 
 #include "PP_Debug.h"
 #include "PP_Shader.h"
 
-#define PP_SIMULATION_TEXTURE_WIDTH 64
-#define PP_SIMULATION_TEXTURE_HEIGHT 64
+#define PP_TEXTURE_WIDTH 64
+#define PP_TEXTURE_HEIGHT 64
+#define PP_AGENTS_NUMBER 128
+
+#define PP_PI 3.141593f
+#define PP_2PI 6.283185f
+
+typedef struct
+{
+    GLfloat x, y;
+} PP_Vec2;
+
+typedef struct
+{
+    PP_Vec2 position;
+    GLfloat heading;
+
+    GLfloat _padding1[1];
+} PP_Agent;
 
 static void GLFW_ErrorCallback(int error_code, const char *description)
 {
@@ -17,8 +35,16 @@ static void GLFW_FramebufferSizeCallback(GLFWwindow *window, int width, int heig
     glViewport(0, 0, width, height);
 }
 
+static float randf(float min, float max)
+{
+    float scale = rand() / (float) RAND_MAX; // [0, 1.0]
+    return min + scale * (max - min);        // [min, max]
+}
+
 int main(void)
 {
+    srand(time(0));
+
     glfwSetErrorCallback(GLFW_ErrorCallback);
 
     if (!glfwInit())
@@ -54,7 +80,7 @@ int main(void)
 
     PP_Shader test_compute_shader = PP_ShaderCreate(
             1,
-            (PP_ShaderSource) {"../../shaders/Test.glsl", GL_COMPUTE_SHADER}
+            (PP_ShaderSource) {"../../shaders/Agent.glsl", GL_COMPUTE_SHADER}
     );
 
     GLuint VAO, VBO, EBO;
@@ -104,9 +130,27 @@ int main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, PP_SIMULATION_TEXTURE_WIDTH, PP_SIMULATION_TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, PP_TEXTURE_WIDTH, PP_TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
 
     glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    PP_Agent agents[PP_AGENTS_NUMBER];
+
+    for (size_t i = 0; i < PP_AGENTS_NUMBER; ++i)
+    {
+        agents[i].position = (PP_Vec2) {randf(0, PP_TEXTURE_WIDTH), randf(0, PP_TEXTURE_HEIGHT)};
+        agents[i].heading  = randf(-PP_2PI, PP_2PI);
+    }
+
+    GLuint ssbo;
+    glGenBuffers(1, &ssbo);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    {
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof agents, agents, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo);
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -114,7 +158,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         PP_ShaderBind(test_compute_shader);
-        glDispatchCompute(PP_SIMULATION_TEXTURE_WIDTH, PP_SIMULATION_TEXTURE_HEIGHT, 1);
+        glDispatchCompute(PP_AGENTS_NUMBER, 1, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         PP_ShaderBind(main_shader);
