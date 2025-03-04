@@ -52,6 +52,56 @@ PP_Shader PP_ShaderCreate(size_t number, ...)
     return program;
 }
 
+PP_Shader PP_ShaderCreateMono(GLenum type, GLsizei number, ...)
+{
+    va_list args;
+    va_start(args, number);
+
+    GLchar *sources[number];
+
+    for (size_t i = 0; i < number; ++i)
+    {
+        char *source;
+        PP_ReadFile(va_arg(args, const char*), &source, 0);
+        sources[i] = source;
+    }
+
+    va_end(args);
+
+    GLuint program = glCreateProgram();
+
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, number, (const GLchar *const *) sources, 0);
+    glCompileShader(shader);
+
+    int32_t compiled;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+
+    if (!compiled)
+    {
+        char message[512];
+        glGetShaderInfoLog(shader, 512, 0, message);
+        PP_ERROR("Shader compilation failed: %s", message);
+    }
+
+    glAttachShader(program, shader);
+    glDeleteShader(shader);
+
+    glLinkProgram(program);
+
+    int32_t linked;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+    if (!linked)
+    {
+        char message[512];
+        glGetProgramInfoLog(program, 512, 0, message);
+        PP_ERROR("Error linking shader program: %s", message);
+    }
+
+    return program;
+}
+
 void PP_ShaderBind(PP_Shader shader)
 {
     glUseProgram(shader);

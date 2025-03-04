@@ -78,9 +78,11 @@ int main(void)
             (PP_ShaderSource) {"../../shaders/Fragment.glsl", GL_FRAGMENT_SHADER}
     );
 
-    PP_Shader test_compute_shader = PP_ShaderCreate(
-            1,
-            (PP_ShaderSource) {"../../shaders/Agent.glsl", GL_COMPUTE_SHADER}
+    PP_Shader test_compute_shader = PP_ShaderCreateMono(
+            GL_COMPUTE_SHADER,
+            2,
+            "../../shaders/Agent.glsl",
+            "../../shaders/Test.glsl"
     );
 
     GLuint VAO, VBO, EBO;
