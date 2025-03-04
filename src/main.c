@@ -4,6 +4,9 @@
 #include "PP_Debug.h"
 #include "PP_Shader.h"
 
+#define PP_SIMULATION_TEXTURE_WIDTH 64
+#define PP_SIMULATION_TEXTURE_HEIGHT 64
+
 static void GLFW_ErrorCallback(int error_code, const char *description)
 {
     PP_ERROR("GLFW ERROR: 0x%08X - %s", error_code, description);
@@ -49,6 +52,11 @@ int main(void)
             (PP_ShaderSource) {"../../shaders/Fragment.glsl", GL_FRAGMENT_SHADER}
     );
 
+    PP_Shader test_compute_shader = PP_ShaderCreate(
+            1,
+            (PP_ShaderSource) {"../../shaders/Test.glsl", GL_COMPUTE_SHADER}
+    );
+
     GLuint VAO, VBO, EBO;
 
     const GLfloat vertices[] = {
@@ -83,14 +91,33 @@ int main(void)
 
     glVertexArrayElementBuffer(VAO, EBO);
 
-    PP_ShaderBind(main_shader);
     glBindVertexArray(VAO);
+
+    GLuint texture;
+    glGenTextures(1, &texture);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, PP_SIMULATION_TEXTURE_WIDTH, PP_SIMULATION_TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
+
+    glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     while (!glfwWindowShouldClose(window))
     {
         glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        PP_ShaderBind(test_compute_shader);
+        glDispatchCompute(PP_SIMULATION_TEXTURE_WIDTH, PP_SIMULATION_TEXTURE_HEIGHT, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        PP_ShaderBind(main_shader);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
 
         glfwSwapBuffers(window);
